@@ -19,6 +19,9 @@ const infoGrid = document.getElementById('infoGrid');
 const roundFractionsCheckbox = document.getElementById('roundFractions');
 const addCommentsCheckbox = document.getElementById('addComments');
 const preserveLibraryCheckbox = document.getElementById('preserveLibrary');
+const overrideLibraryCheckbox = document.getElementById('overrideLibrary');
+const newLibraryInput = document.getElementById('newLibrary');
+
 
 // Modal Elements
 const abundanceModal = document.getElementById('abundanceModal');
@@ -138,7 +141,8 @@ function parseEntries(line) {
  * Convert elemental entries to isotopic entries
  */
 function convertToIsotopic(materials, options) {
-    const { roundFractions, addComments, preserveLibrary } = options;
+    const { roundFractions, addComments, preserveLibrary, overrideLibrary, newLibrary } = options;
+
     const converted = [];
     let elementsConverted = 0;
     let isotopesGenerated = 0;
@@ -190,9 +194,18 @@ function convertToIsotopic(materials, options) {
                         fractionStr = newFraction.toExponential(6);
                     }
 
+                    // Determine library suffix
+                    let finalLibrary = null;
+                    if (overrideLibrary) {
+                        finalLibrary = newLibrary.startsWith('.') ? newLibrary.substring(1) : newLibrary;
+                    } else if (preserveLibrary) {
+                        finalLibrary = entry.library;
+                    }
+
                     newEntries.push({
                         zaid: isotope.zaid,
-                        library: preserveLibrary ? entry.library : null,
+                        library: finalLibrary,
+
                         fraction: newFraction,
                         fractionStr: fractionStr,
                         comment: addComments ? `$ ${element.symbol}-${isotope.mass}` : '',
@@ -304,8 +317,11 @@ function convert() {
         const options = {
             roundFractions: roundFractionsCheckbox.checked,
             addComments: addCommentsCheckbox.checked,
-            preserveLibrary: preserveLibraryCheckbox.checked
+            preserveLibrary: preserveLibraryCheckbox.checked,
+            overrideLibrary: overrideLibraryCheckbox.checked,
+            newLibrary: newLibraryInput.value.trim()
         };
+
 
         const { materials: converted, stats } = convertToIsotopic(materials, options);
         const output = generateOutput(converted);
@@ -529,6 +545,21 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// Mutex for library checkboxes
+preserveLibraryCheckbox.addEventListener('change', () => {
+    if (preserveLibraryCheckbox.checked) overrideLibraryCheckbox.checked = false;
+});
+
+overrideLibraryCheckbox.addEventListener('change', () => {
+    if (overrideLibraryCheckbox.checked) preserveLibraryCheckbox.checked = false;
+});
+
+newLibraryInput.addEventListener('focus', () => {
+    overrideLibraryCheckbox.checked = true;
+    preserveLibraryCheckbox.checked = false;
+});
+
 // Initialize
 updateCharCount(inputCount, 0);
 updateCharCount(outputCount, 0);
+
