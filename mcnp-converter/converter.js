@@ -563,3 +563,188 @@ newLibraryInput.addEventListener('focus', () => {
 updateCharCount(inputCount, 0);
 updateCharCount(outputCount, 0);
 
+// ==================== MATERIAL LIBRARY ====================
+
+// Material Library DOM Elements
+const materialSearch = document.getElementById('materialSearch');
+const categoryFilter = document.getElementById('categoryFilter');
+const materialList = document.getElementById('materialList');
+const materialDetails = document.getElementById('materialDetails');
+const materialCount = document.getElementById('materialCount');
+const selectedMaterialName = document.getElementById('selectedMaterialName');
+const selectedDensity = document.getElementById('selectedDensity');
+const matNumberInput = document.getElementById('matNumber');
+const generateCardBtn = document.getElementById('generateCardBtn');
+
+// Current selected material
+let selectedMaterialId = null;
+
+/**
+ * Initialize material library
+ */
+function initMaterialLibrary() {
+    // Check if materials are loaded
+    if (!areMaterialsLoaded()) {
+        materialList.innerHTML = '<div class="material-list-empty">Loading materials...</div>';
+        materialCount.textContent = 'Loading...';
+        return;
+    }
+
+    // Clear and rebuild category filter
+    categoryFilter.innerHTML = '<option value="">All Categories</option>';
+    const categories = getMaterialCategories();
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categoryFilter.appendChild(option);
+    });
+
+    // Initial render
+    renderMaterialList();
+    updateMaterialCount();
+}
+
+
+/**
+ * Update material count display
+ */
+function updateMaterialCount() {
+    const total = Object.keys(PNNL_MATERIALS).length;
+    materialCount.textContent = `${total} materials`;
+}
+
+/**
+ * Render material list based on current filters
+ */
+function renderMaterialList() {
+    const query = materialSearch.value;
+    const category = categoryFilter.value || null;
+    const results = searchMaterials(query, category);
+
+    if (results.length === 0) {
+        materialList.innerHTML = '<div class="material-list-empty">No materials found</div>';
+        return;
+    }
+
+    let html = '';
+    for (const mat of results) {
+        const isSelected = mat.id === selectedMaterialId ? 'selected' : '';
+        html += `
+            <div class="material-item ${isSelected}" data-id="${mat.id}">
+                <span class="material-item-name">${mat.name}</span>
+                <span class="material-item-category">${mat.category}</span>
+            </div>
+        `;
+    }
+
+    materialList.innerHTML = html;
+
+    // Attach click handlers
+    materialList.querySelectorAll('.material-item').forEach(item => {
+        item.addEventListener('click', () => selectMaterial(item.dataset.id));
+    });
+}
+
+/**
+ * Select a material and show details
+ */
+function selectMaterial(materialId) {
+    selectedMaterialId = materialId;
+    const material = getMaterialById(materialId);
+
+    if (!material) return;
+
+    // Update selection highlight
+    materialList.querySelectorAll('.material-item').forEach(item => {
+        item.classList.toggle('selected', item.dataset.id === materialId);
+    });
+
+    // Show details
+    materialDetails.style.display = 'block';
+    selectedMaterialName.textContent = material.name;
+    selectedDensity.textContent = `ρ = ${material.density} g/cm³`;
+}
+
+/**
+ * Generate MCNP material card from selected material
+ */
+function generateMaterialCard() {
+    if (!selectedMaterialId) {
+        showStatus('No material selected', 'error');
+        return;
+    }
+
+    const material = getMaterialById(selectedMaterialId);
+    if (!material) return;
+
+    const matNum = parseInt(matNumberInput.value) || 1;
+
+    // Determine library suffix
+    let librarySuffix = '';
+    if (overrideLibraryCheckbox.checked && newLibraryInput.value.trim()) {
+        librarySuffix = newLibraryInput.value.trim();
+        if (!librarySuffix.startsWith('.')) {
+            librarySuffix = '.' + librarySuffix;
+        }
+    }
+
+    // Build the material card
+    let card = `c ${material.name} (density: ${material.density} g/cm3)\n`;
+
+    const entries = material.composition;
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const zaidStr = `${entry.zaid}${librarySuffix}`;
+        const fractionStr = formatFraction(entry.fraction);
+
+        // Get element info for comment
+        const z = Math.floor(entry.zaid / 1000);
+        const element = NATURAL_ABUNDANCES[z];
+        const comment = element ? `$ ${element.symbol}` : '';
+
+        if (i === 0) {
+            card += `M${matNum}    ${zaidStr.padEnd(12)} ${fractionStr.padStart(12)}    ${comment}\n`;
+        } else {
+            card += `      ${zaidStr.padEnd(12)} ${fractionStr.padStart(12)}    ${comment}\n`;
+        }
+    }
+
+    // Put in output area
+    outputCard.value = card.trim();
+    updateCharCount(outputCount, outputCard.value.length);
+
+    // Enable buttons
+    copyOutputBtn.disabled = false;
+    downloadOutputBtn.disabled = false;
+
+    // Show info
+    conversionInfo.style.display = 'block';
+    infoGrid.innerHTML = `
+        <div class="info-item">
+            <div class="label">Material</div>
+            <div class="value highlight">${material.name}</div>
+        </div>
+        <div class="info-item">
+            <div class="label">Density</div>
+            <div class="value">${material.density} g/cm³</div>
+        </div>
+        <div class="info-item">
+            <div class="label">Components</div>
+            <div class="value">${entries.length}</div>
+        </div>
+    `;
+
+    showStatus('Material card generated!', 'success');
+
+    // Increment material number for next generation
+    matNumberInput.value = matNum + 1;
+}
+
+// Material Library Event Listeners
+materialSearch.addEventListener('input', renderMaterialList);
+categoryFilter.addEventListener('change', renderMaterialList);
+generateCardBtn.addEventListener('click', generateMaterialCard);
+
+// Initialize material library on page load
+initMaterialLibrary();

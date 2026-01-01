@@ -34,6 +34,42 @@
         </header>
 
         <main class="main-content">
+            <!-- Material Library Section -->
+            <section class="material-library">
+                <div class="section-header">
+                    <h2>Material Library</h2>
+                    <span class="material-count" id="materialCount">100 materials</span>
+                </div>
+                <div class="library-controls">
+                    <input type="text" id="materialSearch" class="search-input" placeholder="Search materials...">
+                    <select id="categoryFilter" class="category-select">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="material-list" id="materialList"></div>
+                <div class="material-details" id="materialDetails" style="display: none;">
+                    <div class="detail-header">
+                        <h3 id="selectedMaterialName">-</h3>
+                        <span class="density-badge" id="selectedDensity">-</span>
+                    </div>
+                    <div class="generate-controls">
+                        <label class="mat-number-label">
+                            Material Number:
+                            <input type="number" id="matNumber" class="mat-number-input" value="1" min="1"
+                                max="99999999">
+                        </label>
+                        <button class="btn btn-primary" id="generateCardBtn">
+                            <svg class="plus-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                            Generate Card
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+
             <section class="input-section">
                 <div class="section-header">
                     <h2>Input Material Card</h2>
@@ -133,10 +169,13 @@ M1    6000.70c  -0.000124    $ Carbon
         </main>
 
         <footer class="footer">
-            <p>Natural abundance data from IUPAC 2016</p>
+            <p>Material data from PNNL-15870 Rev.2</p>
+            <p>•</p>
+            <p>Natural abundances from IUPAC 2016</p>
             <p>•</p>
             <a href="#" id="showAbundances">View Abundance Table</a>
         </footer>
+
     </div>
 
     <!-- Abundance Modal -->
@@ -153,8 +192,17 @@ M1    6000.70c  -0.000124    $ Carbon
         </div>
     </div>
 
+    <script src="MaterialsCompendiumData.js"></script>
+    <script src="materials.js"></script>
     <script src="abundances.js"></script>
     <script src="converter.js"></script>
+    <script>
+        // Initialize materials after all scripts load
+        if (typeof processMaterialsCompendium === 'function') {
+            processMaterialsCompendium();
+        }
+    </script>
+
 </body>
 
 </html>
